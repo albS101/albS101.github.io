@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Expense Calculator</title>
+  <style>
+    body { font-family: sans-serif; margin: 20px; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+    input { width: 100%; box-sizing: border-box; }
+    .total { font-weight: bold; }
+    button { margin: 5px; }
+  </style>
+</head>
+<body>
+  <h2>Expense Calculator</h2>
+  <table id="calcTable">
+    <thead>
+      <tr>
+        <th>Item</th>
+        <th>Albrecht</th>
+        <th>Jenny</th>
+        <th>Delete</th>
+      </tr>
+    </thead>
+    <tbody>
+    </tbody>
+  </table>
+  <button onclick="addRow()">Add Row</button>
+  <button onclick="saveExpenses()">Save Expenses</button>
+  <button onclick="calculateTotals()">Calculate</button>
+  <h3 id="result"></h3>
+  <script>
+    // Load saved expense items from localStorage on page load.
+    window.onload = function() {
+      loadExpenses();
+    };
+
+    // Save current rows to localStorage.
+    function saveExpenses() {
+      var table = document.getElementById('calcTable').getElementsByTagName('tbody')[0];
+      var rows = table.getElementsByTagName('tr');
+      var items = [];
+      for (var i = 0; i < rows.length; i++) {
+        var inputs = rows[i].getElementsByTagName('input');
+        var item = inputs[0].value;
+        var albrecht = inputs[1].value;
+        var jenny = inputs[2].value;
+        items.push({ item: item, albrecht: albrecht, jenny: jenny });
+      }
+      localStorage.setItem('calcItems', JSON.stringify(items));
+    }
+
+    // Load saved expense items from localStorage and populate table.
+    function loadExpenses() {
+      var saved = localStorage.getItem('calcItems');
+      if (saved) {
+        var items = JSON.parse(saved);
+        for (var i = 0; i < items.length; i++) {
+          addRow(items[i]);
+        }
+      }
+    }
+
+    // Add a new row. Optionally, pass an object with prefilled values.
+    function addRow(prefill) {
+      var table = document.getElementById('calcTable').getElementsByTagName('tbody')[0];
+      var row = table.insertRow();
+      var cellItem = row.insertCell(0);
+      var cellAlbrecht = row.insertCell(1);
+      var cellJenny = row.insertCell(2);
+      var cellDelete = row.insertCell(3);
+      
+      cellItem.innerHTML = '<input type="text" placeholder="Item" value="' + (prefill ? prefill.item : '') + '">';
+      cellAlbrecht.innerHTML = '<input type="number" placeholder="Amount" value="' + (prefill ? prefill.albrecht : '') + '">';
+      cellJenny.innerHTML = '<input type="number" placeholder="Amount" value="' + (prefill ? prefill.jenny : '') + '">';
+      cellDelete.innerHTML = '<button onclick="deleteRow(this)">X</button>';
+    }
+
+    function deleteRow(btn) {
+      var row = btn.parentNode.parentNode;
+      row.parentNode.removeChild(row);
+      saveExpenses(); // Update storage after deletion.
+    }
+
+    function calculateTotals() {
+      var table = document.getElementById('calcTable');
+      var rows = table.getElementsByTagName('tbody')[0].rows;
+      var totalAlbrecht = 0;
+      var totalJenny = 0;
+      for(var i = 0; i < rows.length; i++){
+        var albrechtVal = parseFloat(rows[i].cells[1].getElementsByTagName('input')[0].value) || 0;
+        var jennyVal = parseFloat(rows[i].cells[2].getElementsByTagName('input')[0].value) || 0;
+        totalAlbrecht += albrechtVal;
+        totalJenny += jennyVal;
+      }
+      var resultText = 'Total Albrecht: ' + totalAlbrecht.toFixed(2) + ' | Total Jenny: ' + totalJenny.toFixed(2);
+      var diff = totalAlbrecht - totalJenny;
+      if(diff > 0){
+        resultText += '<br>Jenny owes ' + (diff/2).toFixed(2) + ' to Albrecht.';
+      } else if(diff < 0){
+        resultText += '<br>Albrecht owes ' + ((-diff)/2).toFixed(2) + ' to Jenny.';
+      } else {
+        resultText += '<br>No balance due.';
+      }
+      document.getElementById('result').innerHTML = resultText;
+    }
+  </script>
+</body>
+</html>
