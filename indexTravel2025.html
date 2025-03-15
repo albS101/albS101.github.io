@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Europe Trip Planner</title>
+
+  <!-- FullCalendar CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.13/main.min.css" rel="stylesheet" />
+
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+  <!-- SweetAlert2 for Pop-Ups -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: sans-serif;
+      background: #f4f4f4;
+    }
+    header {
+      text-align: center;
+      padding: 1rem 0;
+      background: #444;
+      color: #fff;
+    }
+    main {
+      display: flex;
+      flex-wrap: wrap;
+      max-width: 1200px;
+      margin: 1rem auto;
+      gap: 1rem;
+      padding: 0 1rem;
+    }
+    #calendar-container {
+      flex: 1 1 600px;
+      background: #fff;
+      padding: 1rem;
+      border-radius: 8px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      min-width: 400px;
+    }
+    #map-container {
+      flex: 1 1 400px;
+      min-width: 300px;
+      max-width: 600px;
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      height: 600px;
+      display: flex;
+      flex-direction: column;
+    }
+    #map {
+      flex: 1;
+      border-radius: 0 0 8px 8px;
+    }
+    .fc-event {
+      cursor: pointer;
+    }
+    .controls {
+      text-align: center;
+      margin-bottom: 1rem;
+    }
+    .city-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 4px 0;
+    }
+    .city-row button {
+      margin: 0 2px;
+    }
+    .link-btn {
+      margin: 0 5px;
+    }
+
+    /* Preset color button styling */
+    .colorPreset {
+      width: 30px;
+      height: 30px;
+      border: none;
+      cursor: pointer;
+      margin: 2px;
+    }
+  </style>
+</head>
+
+<body>
+<header>
+  <h1>Europe Trip Planner (May–June 2025)</h1>
+</header>
+
+<div class="controls">
+  <!-- Calendar Export/Import -->
+  <button onclick="exportEvents()">Export Itinerary</button>
+  <input type="file" id="importFile" style="display:none;" onchange="importEvents(event)" />
+  <button onclick="document.getElementById('importFile').click()">Import Itinerary</button>
+
+  <!-- Map City Management -->
+  <button onclick="addCity()">Add City</button>
+  <button onclick="manageCities()">Manage Cities</button>
+
+  <!-- Link to Calculator Page -->
+  <a class="link-btn" href="calculator.html" target="_blank">
+    <button>Calculator</button>
+  </a>
+</div>
+
+<main>
+  <!-- Calendar -->
+  <div id="calendar-container">
+    <div id="calendar"></div>
+  </div>
+
+  <!-- Map -->
+  <div id="map-container">
+    <h3 style="margin: 1rem;">Trip Route Map</h3>
+    <div id="map"></div>
+  </div>
+</main>
+
+<!-- FullCalendar -->
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.13/index.global.min.js"></script>
+
+<!-- Leaflet -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script>
+  // Define our preset color palette (desaturated Corbusier inspired)
+  const presetColors = [
+    '#96b4c9', '#7fb4b5', '#a1c977', '#e88e5a',
+    '#f4cab6', '#899498', '#B0B0B0', '#D1CFCB',
+    '#A3A3A3', '#7C7C7C'
+  ];
+
+  /*****************************************************
+   *  (1) FULLCALENDAR SETUP (Local Storage, Pop-Ups)
+   *****************************************************/
+  document.addEventListener('DOMContentLoaded', function() {
+    const calendarEl = document.getElementById('calendar');
+
+    // Load or use sample events
+    const savedData = localStorage.getItem('tripEvents');
+    const events = savedData ? JSON.parse(savedData) : [
+      {
+        title: '✈️ WLG → AKL (NZ416)',
+        start: '2025-05-09',
+        color: '#ff9f89',
+        extendedProps: { notes: '', type: 'Flight' }
+      },
+      {
+        title: '✈️ AKL → HKG (CX198)',
+        start: '2025-05-09',
+        color: '#ff9f89',
+        extendedProps: { notes: '', type: 'Flight' }
+      },
+      {
+        title: '✈️ HKG → London (CX253)',
+        start: '2025-05-10',
+        color: '#ff9f89',
+        extendedProps: { notes: '', type: 'Flight' }
+      },
+      {
+        title: 'London Stay',
+        start: '2025-05-10',
+        end: '2025-05-13',
+        color: '#a1c977',
+        extendedProps: { notes: '', type: 'Stay' }
+      },
+      {
+        title: '🚆 London → Bruges',
+        start: '2025-05-13',
+        color: '#7fb4b5',
+        extendedProps: { notes: '', type: 'Train' }
+      }
+      // ... more default events ...
+    ];
+
+    const calendar = new FullCalendar.Calendar(calendarEl, {
+      initialView: 'dayGridMonth',
+      initialDate: '2025-05-09',
+      headerToolbar: {
+        left: 'prev,next today',
+        center: 'title',
+        right: 'dayGridMonth,timeGridWeek,timeGridDay'
+      },
+      editable: true,
+      selectable: true,
+      events: events,
+
+      // ADD NEW EVENT
+      dateClick: function(info) {
+        // Build preset colors HTML
+        let presetHtml = '<div style="display:flex; flex-wrap:wrap; gap:5px; margin-bottom:10px;">';
+        presetColors.forEach(color => {
+          presetHtml += `<button class="colorPreset" data-color="${color}"
+            style="background-color:${color};"></button>`;
+        });
+        presetHtml += '</div>';
+
+        Swal.fire({
+          title: 'Add New Event',
+          html:
+            `<input id="evtTitle" class="swal2-input" placeholder="Event Title">` +
+            `<select id="evtType" class="swal2-input">
+               <option value="Flight">Flight</option>
+               <option value="Train">Train</option>
+               <option value="Stay" selected>Stay</option>
+               <option value="Other">Other</option>
+             </select>` +
+            `<textarea id="evtNotes" class="swal2-textarea" placeholder="Notes"></textarea>` +
+            presetHtml +
+            `<input id="evtStart" type="date" class="swal2-input" value="${info.dateStr}">` +
+            `<input id="evtEnd" type="date" class="swal2-input" value="${info.dateStr}">` +
+            `<input id="evtColor" type="hidden" value="#a1c977">`,
+          showCancelButton: true,
+          confirmButtonText: 'Add',
+          didOpen: () => {
+            document.querySelectorAll('.colorPreset').forEach(btn => {
+              btn.addEventListener('click', function() {
+                const chosenColor = this.getAttribute('data-color');
+                document.getElementById('evtColor').value = chosenColor;
+                document.querySelectorAll('.colorPreset').forEach(b => b.style.outline = 'none');
+                this.style.outline = '3px solid black';
+              });
+            });
+          }
+        }).then(result => {
+          if (result.isConfirmed) {
+            const title = document.getElementById('evtTitle').value.trim();
+            const type = document.getElementById('evtType').value;
+            const notes = document.getElementById('evtNotes').value.trim();
+            const color = document.getElementById('evtColor').value;
+            const startDate = document.getElementById('evtStart').value;
+            const endDate = document.getElementById('evtEnd').value || startDate;
+
+            if (title) {
+              calendar.addEvent({
+                title: title,
+                start: startDate,
+                end: endDate,
+                color: color,
+                extendedProps: { notes, type }
+              });
+              saveCalendarEvents();
+            }
+          }
+        });
+      },
+
+      // CLICK EVENT -> EDIT/DELETE
+      eventClick: function(info) {
+        const evt = info.event;
+        Swal.fire({
+          title: 'Edit or Delete?',
+          text: `Selected: "${evt.title}"`,
+          showDenyButton: true,
+          showCancelButton: true,
+          confirmButtonText: 'Edit',
+          denyButtonText: 'Delete'
+        }).then(result => {
+          if (result.isConfirmed) {
+            editEvent(evt);
+          } else if (result.isDenied) {
+            evt.remove();
+            saveCalendarEvents();
+          }
+        });
+      },
+
+      // DRAG / RESIZE
+      eventDrop: saveCalendarEvents,
+      eventResize: saveCalendarEvents
+    });
+
+    calendar.render();
+
+    // SAVE events to local storage
+    function saveCalendarEvents() {
+      const updated = calendar.getEvents().map(evt => ({
+        title: evt.title,
+        start: evt.startStr,
+        end: evt.endStr,
+        color: evt.backgroundColor,
+        extendedProps: evt.extendedProps || {}
+      }));
+      localStorage.setItem('tripEvents', JSON.stringify(updated));
+    }
+
+    // EDIT event
+    function editEvent(evt) {
+      const currentTitle = evt.title;
+      const currentType = evt.extendedProps.type || 'Other';
+      const currentNotes = evt.extendedProps.notes || '';
+      const currentColor = evt.backgroundColor || '#a1c977';
+      const currentStart = evt.startStr;
+      const currentEnd = evt.end
+        ? evt.end.toISOString().slice(0,10)
+        : currentStart;
+
+      // Build preset colors HTML
+      let presetHtml = '<div style="display:flex; flex-wrap:wrap; gap:5px; margin-bottom:10px;">';
+      presetColors.forEach(color => {
+        presetHtml += `<button class="colorPreset" data-color="${color}"
+          style="background-color:${color};"></button>`;
+      });
+      presetHtml += '</div>';
+
+      Swal.fire({
+        title: 'Edit Event',
+        html:
+          `<input id="editEvtTitle" class="swal2-input" value="${escapeHtml(currentTitle)}">` +
+          `<select id="editEvtType" class="swal2-input">
+             <option value="Flight">Flight</option>
+             <option value="Train">Train</option>
+             <option value="Stay">Stay</option>
+             <option value="Other">Other</option>
+           </select>` +
+          `<textarea id="editEvtNotes" class="swal2-textarea">${escapeHtml(currentNotes)}</textarea>` +
+          presetHtml +
+          `<input id="editEvtStart" type="date" class="swal2-input" value="${currentStart}">` +
+          `<input id="editEvtEnd" type="date" class="swal2-input" value="${currentEnd}">` +
+          `<input id="editEvtColor" type="hidden" value="${currentColor}">`,
+        showCancelButton: true,
+        confirmButtonText: 'Update',
+        willOpen: () => {
+          document.getElementById('editEvtType').value = currentType;
+          // Pre-highlight the current color
+          document.querySelectorAll('.colorPreset').forEach(btn => {
+            if (btn.getAttribute('data-color') === currentColor) {
+              btn.style.outline = '3px solid black';
+            }
+            btn.addEventListener('click', function() {
+              const chosenColor = this.getAttribute('data-color');
+              document.getElementById('editEvtColor').value = chosenColor;
+              document.querySelectorAll('.colorPreset').forEach(b => b.style.outline = 'none');
+              this.style.outline = '3px solid black';
+            });
+          });
+        }
+      }).then(r => {
+        if (r.isConfirmed) {
+          const newTitle = document.getElementById('editEvtTitle').value.trim();
+          const newType = document.getElementById('editEvtType').value;
+          const newNotes = document.getElementById('editEvtNotes').value.trim();
+          const newColor = document.getElementById('editEvtColor').value;
+          const newStart = document.getElementById('editEvtStart').value;
+          const newEnd = document.getElementById('editEvtEnd').value || newStart;
+
+          if (newTitle) {
+            evt.setProp('title', newTitle);
+            evt.setProp('color', newColor);
+            evt.setExtendedProp('type', newType);
+            evt.setExtendedProp('notes', newNotes);
+            evt.setStart(newStart);
+            evt.setEnd(newEnd);
+            saveCalendarEvents();
+          }
+        }
+      });
+    }
+
+    function escapeHtml(str) {
+      return str
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/\"/g, '&quot;');
+    }
+
+    window.exportEvents = function() {
+      const data = localStorage.getItem('tripEvents') || '[]';
+      const blob = new Blob([data], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'trip.json';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    };
+
+    window.importEvents = function(e) {
+      const file = e.target.files[0];
+      const reader = new FileReader();
+      reader.onload = function(r) {
+        const imported = JSON.parse(r.target.result);
+        localStorage.setItem('tripEvents', JSON.stringify(imported));
+        location.reload();
+      };
+      reader.readAsText(file);
+    };
+  });
+
+  /************************************************
+   *  (2) LEAFLET MAP - Manage Cities
+   ************************************************/
+  let cityData = [];
+  document.addEventListener('DOMContentLoaded', function() {
+    const storedCities = localStorage.getItem('tripCities');
+    if (storedCities) {
+      cityData = JSON.parse(storedCities);
+    } else {
+      cityData = [
+        { name: 'Wellington (NZ)', coords: [-41.2865, 174.7762], type: 'flight' },
+        { name: 'Auckland (NZ)',   coords: [-36.8485, 174.7633], type: 'flight' },
+        { name: 'Hong Kong',       coords: [22.3193, 114.1694],  type: 'flight' },
+        { name: 'London',          coords: [51.5074, -0.1278],   type: 'flight' },
+        { name: 'Bruges',          coords: [51.2093, 3.2247],    type: 'train' },
+        // ... additional defaults ...
+      ];
+      localStorage.setItem('tripCities', JSON.stringify(cityData));
+    }
+    renderMap();
+  });
+
+  function addCity() {
+    Swal.fire({
+      title: 'Add City',
+      html: `
+        <input id="cityName" class="swal2-input" placeholder="City Name (e.g., Avignon)">
+        <input id="cityLat" class="swal2-input" placeholder="Latitude (e.g., 43.9493)">
+        <input id="cityLng" class="swal2-input" placeholder="Longitude (e.g., 4.8055)">
+        <select id="cityType" class="swal2-input">
+          <option value="flight">Flight</option>
+          <option value="train">Train</option>
+        </select>
+      `,
+      showCancelButton: true,
+      confirmButtonText: 'Save'
+    }).then(result => {
+      if (result.isConfirmed) {
+        const name = document.getElementById('cityName').value.trim();
+        const lat = parseFloat(document.getElementById('cityLat').value);
+        const lng = parseFloat(document.getElementById('cityLng').value);
+        const type = document.getElementById('cityType').value;
+        if (!name || isNaN(lat) || isNaN(lng)) {
+          Swal.fire('Invalid Data', 'Please enter a valid name, latitude, and longitude.', 'error');
+          return;
+        }
+        cityData.push({ name, coords: [lat, lng], type });
+        localStorage.setItem('tripCities', JSON.stringify(cityData));
+        renderMap(true);
+      }
+    });
+  }
+
+  window.manageCities = function() {
+    let htmlContent = '<div id="cityListContainer">';
+    cityData.forEach((city, index) => {
+      htmlContent += `
+        <div class="city-row">
+          <span>${city.name} (${city.coords.join(', ')})</span>
+          <div>
+            <button onclick="moveCity(${index}, -1)">&#8679;</button>
+            <button onclick="moveCity(${index}, 1)">&#8681;</button>
+            <button onclick="deleteCity(${index})" style="color:red;">&times;</button>
+          </div>
+        </div>
+      `;
+    });
+    htmlContent += '</div>';
+
+    Swal.fire({
+      title: 'Manage Cities',
+      html: htmlContent,
+      showCancelButton: true,
+      confirmButtonText: 'Save Order'
+    }).then(result => {
+      if (result.isConfirmed) {
+        localStorage.setItem('tripCities', JSON.stringify(cityData));
+        renderMap(true);
+      }
+    });
+  };
+
+  function moveCity(index, delta) {
+    const newIndex = index + delta;
+    if (newIndex < 0 || newIndex >= cityData.length) return;
+    [cityData[index], cityData[newIndex]] = [cityData[newIndex], cityData[index]];
+    manageCities();
+  }
+
+  function deleteCity(index) {
+    Swal.fire({
+      title: 'Delete City?',
+      text: `Are you sure you want to delete "${cityData[index].name}"?`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Delete'
+    }).then(result => {
+      if (result.isConfirmed) {
+        cityData.splice(index, 1);
+        localStorage.setItem('tripCities', JSON.stringify(cityData));
+        manageCities();
+      }
+    });
+  }
+
+  function renderMap(resetView = false) {
+    const mapContainer = document.getElementById('map');
+    mapContainer.innerHTML = '';
+    var map = L.map('map').setView([50.8503, 4.3517], 5);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 18,
+      attribution: '© OpenStreetMap'
+    }).addTo(map);
+
+    cityData.forEach(city => {
+      const marker = L.marker(city.coords).addTo(map);
+      marker.bindPopup(city.name);
+    });
+
+    const allCoords = cityData.map(city => city.coords);
+    if (allCoords.length > 1) {
+      L.polyline(allCoords, { color: 'purple', weight: 3 }).addTo(map);
+    }
+    if (allCoords.length > 0 && resetView) {
+      var bounds = L.latLngBounds(allCoords);
+      map.fitBounds(bounds);
+    }
+  }
+</script>
+</body>
+</html>
