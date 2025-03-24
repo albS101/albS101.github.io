@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>JSON to ICS Converter</title>
+</head>
+<body>
+    <h2>Convert Trip JSON to ICS</h2>
+    <input type="file" id="importFile" />
+    <button onclick="convertToICS()">Export ICS</button>
+
+    <script>
+        let tripData = null;
+        document.getElementById('importFile').addEventListener('change', function(event) {
+            const file = event.target.files[0];
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                tripData = JSON.parse(e.target.result);
+                alert("JSON Imported Successfully!");
+            };
+            reader.readAsText(file);
+        });
+
+        function formatToICSDate(dateTimeStr) {
+            if (!dateTimeStr) return "";
+            
+            const date = new Date(dateTimeStr);
+            const year = date.getUTCFullYear();
+            const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+            const day = String(date.getUTCDate()).padStart(2, '0');
+            const hours = String(date.getUTCHours()).padStart(2, '0');
+            const minutes = String(date.getUTCMinutes()).padStart(2, '0');
+            return `${year}${month}${day}T${hours}${minutes}00Z`; // UTC format
+        }
+
+        function convertToICS() {
+            if (!tripData) {
+                alert("Please import a valid JSON file first.");
+                return;
+            }
+
+            // Determine if the imported JSON is a full export or a single event.
+            let events = [];
+            if (tripData.events) {
+                events = tripData.events;
+            } else {
+                events = [tripData];
+            }
+
+            let icsContent = "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//TripPlanner//EN\n";
+
+            events.forEach(event => {
+                const start = formatToICSDate(event.start);
+                const end = event.end ? formatToICSDate(event.end) : "";
+
+                icsContent += "BEGIN:VEVENT\n" +
+                              `SUMMARY:${event.title}\n` +
+                              `DTSTART:${start}\n` +
+                              (end ? `DTEND:${end}\n` : "") +
+                              `DESCRIPTION:${event.extendedProps && event.extendedProps.notes ? event.extendedProps.notes : ""}\n` +
+                              "END:VEVENT\n";
+            });
+            
+            icsContent += "END:VCALENDAR";
+            
+            const blob = new Blob([icsContent], { type: 'text/calendar' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = 'trip_schedule.ics';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+    </script>
+</body>
+</html>

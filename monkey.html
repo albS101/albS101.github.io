@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Secret Puzzle</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      text-align: center;
+      margin-top: 100px;
+      background-color: #f9f9f9;
+    }
+    /* Container to hold the guardians and input */
+    .input-container {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 12px;
+    }
+    /* Style for guardian elements */
+    .guardian {
+      font-family: monospace; /* Ensure ASCII art displays correctly */
+      white-space: pre; /* Preserve spacing and line breaks */
+      margin: 0 10px;
+    }
+    input {
+      padding: 8px;
+      margin: 6px;
+      font-size: 16px;
+    }
+    button {
+      padding: 8px 16px;
+      font-size: 16px;
+    }
+    #result {
+      margin-top: 20px;
+      font-weight: bold;
+      font-size: 1.2em;
+    }
+    #poem {
+      display: none;
+      margin-top: 30px;
+      font-style: italic;
+      color: #444;
+      max-width: 500px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+  </style>
+</head>
+<body>
+
+  <h2>🔐 Secret Puzzle Challenge</h2>
+  <p>Enter the secret number and hidden word:</p>
+
+  <!-- First input field with guardians -->
+  <div class="input-container">
+    <div class="guardian" id="leftGuardian1"></div>
+    <input id="userCode" placeholder="Enter the number" />
+    <div class="guardian" id="rightGuardian1"></div>
+  </div>
+
+  <!-- Second input field with guardians -->
+  <div class="input-container">
+    <div class="guardian" id="leftGuardian2"></div>
+    <input id="userWord" placeholder="Find the word" />
+    <div class="guardian" id="rightGuardian2"></div>
+  </div>
+
+  <button onclick="check()">Submit</button>
+
+  <div id="result"></div>
+
+  <div id="poem">
+    <hr />
+    <p>
+      One Ring to rule them all, one Ring to find them,<br />
+      One Ring to bring them all and in the darkness bind them,<br />
+      In the Land of Mordor where the Shadows lie.
+    </p>
+  </div>
+
+  <script>
+    // Arrays of ASCII guardians
+    const leftGuardians = [
+      `  (\\_/)  
+ ( •_•)  
+ / >🛡️`,
+      ` ／＞　 フ
+| 　_　_| 
+／\`ミ＿xノ 
+/　　　　 |
+\\　 ヽ　　 ﾉ
+│　　|　|　|`,
+      `   .-'     '-.
+  /  .-. .-.  \\
+ |  /   Y   \\ |
+ \\ \\_0_0_/ /
+  '-.\\___/.-'
+   _/     \\_
+  |  ⚔️     |`
+    ];
+
+    const rightGuardians = [
+      `   (ง •̀_•́)ง
+    /︻╦╤─
+   /     \\ 
+  |       |`,
+      `    ／＞　 フ
+    | 　_　_| 
+   ／\`ミ＿xノ 
+  /　　　　 |
+  |　 ヽ　ﾉ
+  |　　|　|`,
+      `   (•_•) 
+  <)   )╯
+  /   \\ ⚔️`
+    ];
+
+    // Function to pick a random guardian from an array
+    function getRandomGuardian(array) {
+      return array[Math.floor(Math.random() * array.length)];
+    }
+
+    // Function to update all guardians
+    function updateGuardians() {
+      document.getElementById('leftGuardian1').textContent = getRandomGuardian(leftGuardians);
+      document.getElementById('rightGuardian1').textContent = getRandomGuardian(rightGuardians);
+      document.getElementById('leftGuardian2').textContent = getRandomGuardian(leftGuardians);
+      document.getElementById('rightGuardian2').textContent = getRandomGuardian(rightGuardians);
+    }
+
+    // Initialize guardians on page load
+    updateGuardians();
+
+    // Update guardians every 3 seconds (3000 milliseconds)
+    setInterval(updateGuardians, 3000);
+
+    // Existing secret puzzle functions
+    function getSecretNumber() {
+      const x = String.fromCharCode(82).replace("R", "4"); // R = 82, becomes 4
+      const y = String.fromCharCode(55); // '7'
+      const z = "5";
+      const q = "3";
+      const w = "9";
+      const e = "7";
+      return parseInt(x + y + z + q + w + e, 10);
+    }
+
+    function getSecretWord() {
+      return atob("VHJvc3Npbmdlcg==");
+    }
+
+    function check() {
+      const numInput = document.getElementById("userCode").value.trim();
+      const wordInput = document.getElementById("userWord").value.trim();
+
+      const correctNumber = getSecretNumber();
+      const correctWord = getSecretWord();
+
+      if (parseInt(numInput, 10) === correctNumber && wordInput === correctWord) {
+        document.getElementById("result").textContent = "✅ Access Granted";
+        document.getElementById("result").style.color = "#2e7d32";
+        document.getElementById("poem").style.display = "block";
+      } else {
+        document.getElementById("result").textContent = "❌ Incorrect. Try again.";
+        document.getElementById("result").style.color = "#c62828";
+        document.getElementById("poem").style.display = "none";
+      }
+    }
+  </script>
+
+</body>
+</html>
