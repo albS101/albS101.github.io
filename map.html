@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Europe Trip Planner - Map View</title>
+
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <!-- SweetAlert2 -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+  <style>
+    body {
+      margin: 0; 
+      padding: 0; 
+      font-family: sans-serif; 
+      background: #f4f4f4;
+      display: flex; 
+      flex-direction: column; 
+      height: 100vh;
+    }
+    header {
+      text-align: center;
+      padding: 0.5rem;
+      background: #444;
+      color: #fff;
+      flex-shrink: 0;
+    }
+    .controls {
+      text-align: center;
+      padding: 0.5rem;
+      background: #ddd;
+      flex-shrink: 0;
+    }
+    .controls button {
+      margin: 5px;
+      padding: 6px 10px;
+      font-size: 14px;
+      cursor: pointer;
+    }
+    #map-container {
+      flex: 1;
+      margin: 0 auto;
+      width: 95%;
+      background: #fff;
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+    }
+    #map {
+      flex: 1;
+      border: 2px solid #ccc;
+      border-radius: 8px;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Europe Trip Planner - Map View</h1>
+</header>
+
+<div class="controls">
+  <button onclick="goFullscreen()">Go Fullscreen</button>
+  <button onclick="exitFullscreen()">Exit Fullscreen</button>
+
+  <button onclick="exportData()">Export JSON</button>
+  <input type="file" id="importFile" style="display:none;" onchange="importData(event)">
+  <button onclick="document.getElementById('importFile').click()">Import JSON</button>
+
+  <button onclick="manageCities()">Manage Cities</button>
+  <a href="index.html"><button>Calendar View</button></a>
+</div>
+
+<div id="map-container">
+  <div id="map"></div>
+</div>
+
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script>
+  /* Fullscreen toggling */
+  function goFullscreen() {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(err => {
+        console.error(`Error enabling fullscreen: ${err.message}`);
+      });
+    }
+  }
+  function exitFullscreen() {
+    if (document.fullscreenElement) {
+      document.exitFullscreen();
+    }
+  }
+
+  let cityData = [];
+
+  document.addEventListener('DOMContentLoaded', function() {
+    let storedCities = localStorage.getItem('tripCities');
+    if (storedCities) {
+      cityData = JSON.parse(storedCities);
+    } else {
+      cityData = [
+        { name: 'London', coords: [51.5074, -0.1278] },
+        { name: 'Wellington', coords: [-41.2865, 174.7762] }
+      ];
+      localStorage.setItem('tripCities', JSON.stringify(cityData));
+    }
+    renderMap();
+  });
+
+  function renderMap() {
+    let mapEl = document.getElementById('map');
+    mapEl.innerHTML = '';
+    let map = L.map('map').setView([50,10], 4);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 18
+    }).addTo(map);
+
+    let coordsList = [];
+    cityData.forEach(c => {
+      coordsList.push(c.coords);
+      L.marker(c.coords).addTo(map).bindPopup(c.name);
+    });
+    if (coordsList.length > 1) {
+      L.polyline(coordsList, { color: 'purple', weight: 3 }).addTo(map);
+      map.fitBounds(coordsList);
+    }
+  }
+
+  function exportData() {
+    let evJSON = localStorage.getItem('tripEvents') || '[]';
+    let data = {
+      events: JSON.parse(evJSON),
+      cities: cityData
+    };
+    let str = JSON.stringify(data, null, 2);
+    let blob = new Blob([str], { type:'application/json' });
+    let a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'trip_data.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  }
+
+  function importData(e) {
+    let file = e.target.files[0];
+    if (!file) return;
+    let reader = new FileReader();
+    reader.onload = (r) => {
+      try {
+        let imported = JSON.parse(r.target.result);
+        if (imported.events && imported.cities) {
+          // Save events & cities
+          localStorage.setItem('tripEvents', JSON.stringify(imported.events));
+          localStorage.setItem('tripCities', JSON.stringify(imported.cities));
+          alert("Imported successfully!");
+          location.reload();
+        } else {
+          alert("Invalid JSON format.");
+        }
+      } catch (err) {
+        alert("Error parsing JSON file.");
+      }
+    };
+    reader.readAsText(file);
+  }
+
+  function manageCities() {
+    let html = '';
+    cityData.forEach((c, i)=>{
+      html += `
+        <div style='margin-bottom:5px; border-bottom:1px solid #ccc; display:flex; justify-content:space-between;'>
+          <span>${c.name} [${c.coords.join(', ')}]</span>
+          <button style='color:red;' onclick='deleteCity(${i})'>×</button>
+        </div>
+      `;
+    });
+    html += `
+      <hr/>
+      <label>New City Name:</label><br/>
+      <input id='newCityName' type='text' placeholder='Name'/><br/>
+      <label>Latitude:</label><br/>
+      <input id='newCityLat' type='number' step='0.0001' placeholder='Lat'/><br/>
+      <label>Longitude:</label><br/>
+      <input id='newCityLng' type='number' step='0.0001' placeholder='Lng'/><br/>
+      <br/>
+      <button onclick='addNewCity()'>Add City</button>
+    `;
+
+    let container = document.createElement('div');
+    container.innerHTML = html;
+    let opts = {
+      title: 'Manage Cities',
+      html: container,
+      showCancelButton: true
+    };
+    Swal.fire(opts);
+  }
+
+  window.addNewCity = function() {
+    let name = document.getElementById('newCityName').value.trim();
+    let lat = parseFloat(document.getElementById('newCityLat').value);
+    let lng = parseFloat(document.getElementById('newCityLng').value);
+    if (!name || isNaN(lat) || isNaN(lng)) {
+      alert("Invalid city data.");
+      return;
+    }
+    cityData.push({ name, coords:[lat,lng] });
+    localStorage.setItem('tripCities', JSON.stringify(cityData));
+    alert("City Added!");
+    location.reload();
+  };
+
+  window.deleteCity = function(idx) {
+    cityData.splice(idx,1);
+    localStorage.setItem('tripCities', JSON.stringify(cityData));
+    alert("Deleted city.");
+    location.reload();
+  };
+</script>
+
+</body>
+</html>
