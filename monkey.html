@@ -1,182 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Memory vault</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { font-family: var(--font-sans); color: var(--color-text-primary); }
-  .outer { padding: 2rem 1rem; display: flex; justify-content: center; }
-  .card { background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); padding: 2rem; width: 100%; max-width: 480px; }
+  body { font-family: system-ui, sans-serif; background: #f4f4f2; color: #1a1a1a; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 2rem 1rem; }
+  .card { background: #fff; border: 2px solid #888; border-radius: 12px; padding: 2rem; width: 100%; max-width: 480px; }
   .header { text-align: center; margin-bottom: 2rem; }
   .header h1 { font-size: 20px; font-weight: 500; margin-bottom: 0.4rem; }
-  .header p { font-size: 13px; color: var(--color-text-secondary); }
-  .round-section { display: none; }
-  .round-section.active { display: block; }
-  .round-title { font-size: 14px; font-weight: 500; color: var(--color-text-secondary); margin-bottom: 1.25rem; text-transform: uppercase; letter-spacing: 0.05em; }
+  .header p { font-size: 13px; color: #666; }
+  .screen { display: none; }
+  .screen.active { display: block; }
+  .round-title { font-size: 13px; font-weight: 500; color: #888; margin-bottom: 1.25rem; text-transform: uppercase; letter-spacing: 0.06em; }
   .question-group { margin-bottom: 1.25rem; }
-  .question-label { font-size: 14px; color: var(--color-text-primary); margin-bottom: 0.5rem; display: block; }
-  .question-input { width: 100%; padding: 0.65rem 0.75rem; border: 1.5px solid var(--color-border-primary); border-radius: var(--border-radius-md); font-size: 15px; font-family: inherit; background: var(--color-background-secondary); color: var(--color-text-primary); }
-  .question-input:focus { outline: none; border-color: var(--color-text-info); }
+  .question-label { font-size: 14px; color: #1a1a1a; margin-bottom: 0.5rem; display: block; }
+  .question-input { width: 100%; padding: 0.65rem 0.75rem; border: 2px solid #888; border-radius: 8px; font-size: 15px; font-family: inherit; background: #f9f9f7; color: #1a1a1a; }
+  .question-input:focus { outline: none; border-color: #4a90d9; }
   .button-group { display: flex; gap: 10px; margin-top: 1.5rem; }
-  button { padding: 0.65rem 1.25rem; font-size: 14px; border: 0.5px solid var(--color-border-secondary); border-radius: var(--border-radius-md); background: transparent; cursor: pointer; font-weight: 500; color: var(--color-text-primary); }
-  button:hover { background: var(--color-background-secondary); }
-  button.primary { background: var(--color-background-info); color: var(--color-text-info); border-color: transparent; }
+  button { padding: 0.65rem 1.25rem; font-size: 14px; border: 1px solid #888; border-radius: 8px; background: transparent; cursor: pointer; font-weight: 500; color: #1a1a1a; }
+  button:hover { background: #f0f0ee; }
+  button.primary { background: #ddeeff; color: #1a5fa8; border-color: transparent; }
   button.primary:hover { opacity: 0.85; }
-  .error-message { color: var(--color-text-danger); font-size: 13px; margin-top: 0.75rem; display: none; }
+  .error-message { color: #c0392b; font-size: 13px; margin-top: 0.75rem; display: none; }
   .error-message.show { display: block; }
-  .progress { display: flex; gap: 6px; margin-bottom: 1.75rem; justify-content: center; }
-  .progress-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--color-border-tertiary); transition: all 0.3s; }
-  .progress-dot.active { background: var(--color-text-info); }
-  .progress-dot.completed { background: var(--color-text-success); }
-  .vault-content { display: none; }
-  .vault-content.revealed { display: block; }
-  .vault-title { font-size: 14px; font-weight: 500; color: var(--color-text-success); margin-bottom: 1.25rem; text-align: center; }
-  .vault-line { font-family: var(--font-mono); font-size: 13px; padding: 0.85rem 1rem; margin-bottom: 0.75rem; background: var(--color-background-secondary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-md); word-break: break-all; color: var(--color-text-primary); line-height: 1.7; }
+  .progress { display: none; gap: 6px; margin-bottom: 1.75rem; justify-content: center; }
+  .progress.visible { display: flex; }
+  .progress-dot { width: 7px; height: 7px; border-radius: 50%; background: #bbb; transition: all 0.3s; }
+  .progress-dot.active { background: #4a90d9; }
+  .progress-dot.completed { background: #5a9e6f; }
+  .vault-title { font-size: 14px; font-weight: 500; color: #5a9e6f; margin-bottom: 1.25rem; text-align: center; }
+  .vault-line { font-family: monospace; font-size: 13px; padding: 0.85rem 1rem; margin-bottom: 0.75rem; background: #f9f9f7; border: 1px solid #888; border-radius: 8px; word-break: break-all; color: #1a1a1a; line-height: 1.7; }
 </style>
-
-<div class="outer">
-  <div class="card">
-    <div class="header">
-      <h1>🔐 Memory Vault</h1>
-      <p>Answer the questions to unlock your recovery words</p>
-    </div>
-
-    <div class="progress">
-      <div class="progress-dot active" id="dot-1"></div>
-      <div class="progress-dot" id="dot-2"></div>
-      <div class="progress-dot" id="dot-3"></div>
-    </div>
-
-    <div class="round-section active" id="round-1">
-      <div class="round-title">Round 1 of 3</div>
-      <div class="question-group">
-        <label class="question-label">What was the name of your street?</label>
-        <input type="text" class="question-input" id="r1-street" autocomplete="off">
-      </div>
-      <div class="question-group">
-        <label class="question-label">What was your childhood phone number?</label>
-        <input type="text" class="question-input" id="r1-phone" autocomplete="off">
-      </div>
-      <div class="error-message" id="error-1"></div>
-      <div class="button-group">
-        <button class="primary" id="btn1">Continue to Round 2</button>
-      </div>
-    </div>
-
-    <div class="round-section" id="round-2">
-      <div class="round-title">Round 2 of 3</div>
-      <div class="question-group">
-        <label class="question-label">What was your friend's 4 letter name?</label>
-        <input type="text" class="question-input" id="r2-friend" autocomplete="off">
-      </div>
-      <div class="question-group">
-        <label class="question-label">What was your dog called?</label>
-        <input type="text" class="question-input" id="r2-dog" autocomplete="off">
-      </div>
-      <div class="error-message" id="error-2"></div>
-      <div class="button-group">
-        <button id="btn2-back">← Back</button>
-        <button class="primary" id="btn2">Continue to Round 3</button>
-      </div>
-    </div>
-
-    <div class="round-section" id="round-3">
-      <div class="round-title">Round 3 of 3</div>
-      <div class="question-group">
-        <label class="question-label">What was your first car?</label>
-        <input type="text" class="question-input" id="r3-vehicle" autocomplete="off">
-      </div>
-      <div class="question-group">
-        <label class="question-label">What media was in the wooden box?</label>
-        <input type="text" class="question-input" id="r3-media" autocomplete="off">
-      </div>
-      <div class="question-group">
-        <label class="question-label">What tree was in the back yard?</label>
-        <input type="text" class="question-input" id="r3-tree" autocomplete="off">
-      </div>
-      <div class="error-message" id="error-3"></div>
-      <div class="button-group">
-        <button id="btn3-back">← Back</button>
-        <button class="primary" id="btn3">Unlock Vault</button>
-      </div>
-    </div>
-
-    <div class="vault-content" id="vault">
-      <div class="vault-title">✓ Vault Unlocked</div>
-      <div class="vault-line">
-        One Ring to rule them all, one Ring to find them,<br>
-        One Ring to bring them all and in the darkness bind them,<br>
-        In the Land of Mordor where the Shadows lie.<br><br>
-        A#_xylo45&amp;<br>
-        Co##a_Birnbaum!<br>
-        kry##_xero45%
-      </div>
-    </div>
-
+</head>
+<body>
+<div class="card">
+  <div class="header">
+    <h1 id="vault-title">albrecht's memory vault</h1>
+    <p>Answer the questions to unlock your recovery words</p>
   </div>
+
+  <div class="progress" id="progress-dots">
+    <div class="progress-dot" id="dot-1"></div>
+    <div class="progress-dot" id="dot-2"></div>
+    <div class="progress-dot" id="dot-3"></div>
+  </div>
+
+  <div class="screen active" id="screen-0">
+    <div class="question-group" style="margin-bottom:0;">
+      <label class="question-label">Enter access code</label>
+      <input type="password" class="question-input" id="passcode" autocomplete="off">
+    </div>
+    <div class="error-message" id="error-0"></div>
+    <div class="button-group">
+      <button class="primary" id="btn0">Continue</button>
+    </div>
+  </div>
+
+  <div class="screen" id="round-1">
+    <div class="round-title">Round 1 of 3</div>
+    <div class="question-group">
+      <label class="question-label">What was the name of your street?</label>
+      <input type="text" class="question-input" id="r1-street" autocomplete="off">
+    </div>
+    <div class="question-group">
+      <label class="question-label">What was your childhood phone number?</label>
+      <input type="text" class="question-input" id="r1-phone" autocomplete="off">
+    </div>
+    <div class="error-message" id="error-1"></div>
+    <div class="button-group">
+      <button class="primary" id="btn1">Continue to Round 2</button>
+    </div>
+  </div>
+
+  <div class="screen" id="round-2">
+    <div class="round-title">Round 2 of 3</div>
+    <div class="question-group">
+      <label class="question-label">What was your friend's 4 letter name?</label>
+      <input type="text" class="question-input" id="r2-friend" autocomplete="off">
+    </div>
+    <div class="question-group">
+      <label class="question-label">What was your dog called?</label>
+      <input type="text" class="question-input" id="r2-dog" autocomplete="off">
+    </div>
+    <div class="error-message" id="error-2"></div>
+    <div class="button-group">
+      <button id="btn2-back">← Back</button>
+      <button class="primary" id="btn2">Continue to Round 3</button>
+    </div>
+  </div>
+
+  <div class="screen" id="round-3">
+    <div class="round-title">Round 3 of 3</div>
+    <div class="question-group">
+      <label class="question-label">What was your first car?</label>
+      <input type="text" class="question-input" id="r3-vehicle" autocomplete="off">
+    </div>
+    <div class="question-group">
+      <label class="question-label">What media was in the wooden box?</label>
+      <input type="text" class="question-input" id="r3-media" autocomplete="off">
+    </div>
+    <div class="question-group">
+      <label class="question-label">What tree was in the back yard?</label>
+      <input type="text" class="question-input" id="r3-tree" autocomplete="off">
+    </div>
+    <div class="error-message" id="error-3"></div>
+    <div class="button-group">
+      <button id="btn3-back">← Back</button>
+      <button class="primary" id="btn3">Unlock Vault</button>
+    </div>
+  </div>
+
+  <div class="screen" id="vault">
+    <div class="vault-title">&#10003; Vault Unlocked</div>
+    <div class="vault-line">
+      One Ring to rule them all, one Ring to find them,<br>
+      One Ring to bring them all and in the darkness bind them,<br>
+      In the Land of Mordor where the Shadows lie.<br><br>
+      A#_xylo45&amp;<br>
+      Co##a_Birnbaum!<br>
+      kry##_xero45%
+    </div>
+  </div>
+
 </div>
-
 <script>
-async function sha256(str) {
-  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(str));
-  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,"0")).join("");
-}
+async function sha256(s){const b=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(s));return Array.from(new Uint8Array(b)).map(x=>x.toString(16).padStart(2,"0")).join("");}
+function norm(s){return s.toLowerCase().trim().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/\s+/g,"");}
+function extractKey(){return document.getElementById("vault-title").textContent.split("'")[0].trim().toLowerCase();}
+function keyShifts(k){return k.split("").map(c=>{const n=c.charCodeAt(0)-96;return(n>=1&&n<=26)?n:0;});}
+function shiftChar(c,n){if(c>='a'&&c<='z')return String.fromCharCode(((c.charCodeAt(0)-97+n)%26)+97);if(c>='0'&&c<='9')return String.fromCharCode(((c.charCodeAt(0)-48+n)%10)+48);return c;}
+function shiftWord(w,n){return w.split("").map(c=>shiftChar(c,n)).join("");}
+function applyKey(arr,sh){return arr.map((a,i)=>shiftWord(norm(a),sh[i%sh.length]));}
+async function computeHash(pc,answers,sh){return await sha256(shiftWord(norm(pc),sh[0])+applyKey(answers,sh).join(""));}
+function val(id){return document.getElementById(id).value;}
 
-function norm(s) {
-  return s.toLowerCase().trim().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/\s+/g,"");
-}
+// Pre-computed hashes — no plaintext answers in this file
+const H={
+  pc:"73223f414350b986d1f2ea31536e47808282e08581f11b18a22f8536ea3a7a4b",
+  r1:"13ee88085ea3d46e8417de7c386f85b188f5763538d981c5e04fac2507e2842b",
+  r2:"e20a8e1ea4aa746ce04cef5113a776b7b9595844c17f04503a65d8c6732cc6dc",
+  r3:"5415186e14efe5af31c1643eff8bee66cffc3814e5a731d2310ae39aa2295369"
+};
 
-async function hashAnswers(arr) {
-  return await sha256(arr.map(norm).join(""));
-}
-
-function val(id) { return document.getElementById(id).value; }
-
-function goTo(n) {
-  document.querySelectorAll(".round-section").forEach(s => s.classList.remove("active"));
-  document.getElementById("round-"+n).classList.add("active");
-  document.querySelectorAll(".progress-dot").forEach((dot, i) => {
-    dot.classList.remove("active","completed");
-    if (i+1 < n) dot.classList.add("completed");
-    if (i+1 === n) dot.classList.add("active");
-  });
-}
-
-document.getElementById("btn1").addEventListener("click", async function() {
-  const input    = await hashAnswers([val("r1-street"), val("r1-phone")]);
-  const expected = await hashAnswers(["trossinger","475397"]);
-  if (input === expected) {
-    goTo(2);
-  } else {
-    const e = document.getElementById("error-1");
-    e.textContent = "Incorrect. Please check your answers.";
-    e.classList.add("show");
+function goTo(id,n){
+  document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));
+  document.getElementById(id).classList.add("active");
+  const pd=document.getElementById("progress-dots");
+  if(n){
+    pd.classList.add("visible");
+    document.querySelectorAll(".progress-dot").forEach((d,i)=>{
+      d.classList.remove("active","completed");
+      if(i+1<n)d.classList.add("completed");
+      if(i+1===n)d.classList.add("active");
+    });
   }
+}
+
+document.getElementById("btn0").addEventListener("click",async function(){
+  const sh=keyShifts(extractKey());
+  const ih=await sha256(shiftWord(norm(val("passcode")),sh[0]));
+  if(ih===H.pc){goTo("round-1",1);}
+  else{const e=document.getElementById("error-0");e.textContent="Incorrect access code.";e.classList.add("show");}
+});
+document.getElementById("passcode").addEventListener("keydown",function(e){if(e.key==="Enter")document.getElementById("btn0").click();});
+
+document.getElementById("btn1").addEventListener("click",async function(){
+  const sh=keyShifts(extractKey());
+  const ih=await computeHash(val("passcode"),[val("r1-street"),val("r1-phone")],sh);
+  if(ih===H.r1){goTo("round-2",2);}
+  else{const e=document.getElementById("error-1");e.textContent="Incorrect. Please check your answers.";e.classList.add("show");}
 });
 
-document.getElementById("btn2-back").addEventListener("click", () => goTo(1));
-
-document.getElementById("btn2").addEventListener("click", async function() {
-  const input    = await hashAnswers([val("r1-street"), val("r1-phone"), val("r2-friend"), val("r2-dog")]);
-  const expected = await hashAnswers(["trossinger","475397","yoyo","minka"]);
-  if (input === expected) {
-    goTo(3);
-  } else {
-    const e = document.getElementById("error-2");
-    e.textContent = "Incorrect. Please check your answers.";
-    e.classList.add("show");
-  }
+document.getElementById("btn2-back").addEventListener("click",()=>goTo("round-1",1));
+document.getElementById("btn2").addEventListener("click",async function(){
+  const sh=keyShifts(extractKey());
+  const ih=await computeHash(val("passcode"),[val("r1-street"),val("r1-phone"),val("r2-friend"),val("r2-dog")],sh);
+  if(ih===H.r2){goTo("round-3",3);}
+  else{const e=document.getElementById("error-2");e.textContent="Incorrect. Please check your answers.";e.classList.add("show");}
 });
 
-document.getElementById("btn3-back").addEventListener("click", () => goTo(2));
-
-document.getElementById("btn3").addEventListener("click", async function() {
-  const input    = await hashAnswers([val("r1-street"), val("r1-phone"), val("r2-friend"), val("r2-dog"), val("r3-vehicle"), val("r3-media"), val("r3-tree")]);
-  const expected = await hashAnswers(["trossinger","475397","yoyo","minka","beetle","audiobooks","walnut"]);
-  if (input === expected) {
-    document.querySelectorAll(".round-section").forEach(s => s.classList.remove("active"));
-    document.getElementById("vault").classList.add("revealed");
-    document.querySelectorAll(".progress-dot").forEach(dot => { dot.classList.remove("active"); dot.classList.add("completed"); });
-  } else {
-    const e = document.getElementById("error-3");
-    e.textContent = "Incorrect. Please check your answers.";
-    e.classList.add("show");
-  }
+document.getElementById("btn3-back").addEventListener("click",()=>goTo("round-2",2));
+document.getElementById("btn3").addEventListener("click",async function(){
+  const sh=keyShifts(extractKey());
+  const ih=await computeHash(val("passcode"),[val("r1-street"),val("r1-phone"),val("r2-friend"),val("r2-dog"),val("r3-vehicle"),val("r3-media"),val("r3-tree")],sh);
+  if(ih===H.r3){
+    document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));
+    document.getElementById("vault").classList.add("active");
+    document.querySelectorAll(".progress-dot").forEach(d=>{d.classList.remove("active");d.classList.add("completed");});
+  }else{const e=document.getElementById("error-3");e.textContent="Incorrect. Please check your answers.";e.classList.add("show");}
 });
 </script>
+</body>
+</html>
