@@ -1,177 +1,182 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <title>Secret Puzzle</title>
-  <style>
-    body {
-      font-family: sans-serif;
-      text-align: center;
-      margin-top: 100px;
-      background-color: #f9f9f9;
-    }
-    /* Container to hold the guardians and input */
-    .input-container {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin-bottom: 12px;
-    }
-    /* Style for guardian elements */
-    .guardian {
-      font-family: monospace; /* Ensure ASCII art displays correctly */
-      white-space: pre; /* Preserve spacing and line breaks */
-      margin: 0 10px;
-    }
-    input {
-      padding: 8px;
-      margin: 6px;
-      font-size: 16px;
-    }
-    button {
-      padding: 8px 16px;
-      font-size: 16px;
-    }
-    #result {
-      margin-top: 20px;
-      font-weight: bold;
-      font-size: 1.2em;
-    }
-    #poem {
-      display: none;
-      margin-top: 30px;
-      font-style: italic;
-      color: #444;
-      max-width: 500px;
-      margin-left: auto;
-      margin-right: auto;
-    }
-  </style>
-</head>
-<body>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: var(--font-sans); color: var(--color-text-primary); }
+  .outer { padding: 2rem 1rem; display: flex; justify-content: center; }
+  .card { background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); padding: 2rem; width: 100%; max-width: 480px; }
+  .header { text-align: center; margin-bottom: 2rem; }
+  .header h1 { font-size: 20px; font-weight: 500; margin-bottom: 0.4rem; }
+  .header p { font-size: 13px; color: var(--color-text-secondary); }
+  .round-section { display: none; }
+  .round-section.active { display: block; }
+  .round-title { font-size: 14px; font-weight: 500; color: var(--color-text-secondary); margin-bottom: 1.25rem; text-transform: uppercase; letter-spacing: 0.05em; }
+  .question-group { margin-bottom: 1.25rem; }
+  .question-label { font-size: 14px; color: var(--color-text-primary); margin-bottom: 0.5rem; display: block; }
+  .question-input { width: 100%; padding: 0.65rem 0.75rem; border: 1.5px solid var(--color-border-primary); border-radius: var(--border-radius-md); font-size: 15px; font-family: inherit; background: var(--color-background-secondary); color: var(--color-text-primary); }
+  .question-input:focus { outline: none; border-color: var(--color-text-info); }
+  .button-group { display: flex; gap: 10px; margin-top: 1.5rem; }
+  button { padding: 0.65rem 1.25rem; font-size: 14px; border: 0.5px solid var(--color-border-secondary); border-radius: var(--border-radius-md); background: transparent; cursor: pointer; font-weight: 500; color: var(--color-text-primary); }
+  button:hover { background: var(--color-background-secondary); }
+  button.primary { background: var(--color-background-info); color: var(--color-text-info); border-color: transparent; }
+  button.primary:hover { opacity: 0.85; }
+  .error-message { color: var(--color-text-danger); font-size: 13px; margin-top: 0.75rem; display: none; }
+  .error-message.show { display: block; }
+  .progress { display: flex; gap: 6px; margin-bottom: 1.75rem; justify-content: center; }
+  .progress-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--color-border-tertiary); transition: all 0.3s; }
+  .progress-dot.active { background: var(--color-text-info); }
+  .progress-dot.completed { background: var(--color-text-success); }
+  .vault-content { display: none; }
+  .vault-content.revealed { display: block; }
+  .vault-title { font-size: 14px; font-weight: 500; color: var(--color-text-success); margin-bottom: 1.25rem; text-align: center; }
+  .vault-line { font-family: var(--font-mono); font-size: 13px; padding: 0.85rem 1rem; margin-bottom: 0.75rem; background: var(--color-background-secondary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-md); word-break: break-all; color: var(--color-text-primary); line-height: 1.7; }
+</style>
 
-  <h2>🔐 Secret Puzzle Challenge</h2>
-  <p>Enter the secret number and hidden word:</p>
+<div class="outer">
+  <div class="card">
+    <div class="header">
+      <h1>🔐 Memory Vault</h1>
+      <p>Answer the questions to unlock your recovery words</p>
+    </div>
 
-  <!-- First input field with guardians -->
-  <div class="input-container">
-    <div class="guardian" id="leftGuardian1"></div>
-    <input id="userCode" placeholder="Enter the number" />
-    <div class="guardian" id="rightGuardian1"></div>
+    <div class="progress">
+      <div class="progress-dot active" id="dot-1"></div>
+      <div class="progress-dot" id="dot-2"></div>
+      <div class="progress-dot" id="dot-3"></div>
+    </div>
+
+    <div class="round-section active" id="round-1">
+      <div class="round-title">Round 1 of 3</div>
+      <div class="question-group">
+        <label class="question-label">What was the name of your street?</label>
+        <input type="text" class="question-input" id="r1-street" autocomplete="off">
+      </div>
+      <div class="question-group">
+        <label class="question-label">What was your childhood phone number?</label>
+        <input type="text" class="question-input" id="r1-phone" autocomplete="off">
+      </div>
+      <div class="error-message" id="error-1"></div>
+      <div class="button-group">
+        <button class="primary" id="btn1">Continue to Round 2</button>
+      </div>
+    </div>
+
+    <div class="round-section" id="round-2">
+      <div class="round-title">Round 2 of 3</div>
+      <div class="question-group">
+        <label class="question-label">What was your friend's 4 letter name?</label>
+        <input type="text" class="question-input" id="r2-friend" autocomplete="off">
+      </div>
+      <div class="question-group">
+        <label class="question-label">What was your dog called?</label>
+        <input type="text" class="question-input" id="r2-dog" autocomplete="off">
+      </div>
+      <div class="error-message" id="error-2"></div>
+      <div class="button-group">
+        <button id="btn2-back">← Back</button>
+        <button class="primary" id="btn2">Continue to Round 3</button>
+      </div>
+    </div>
+
+    <div class="round-section" id="round-3">
+      <div class="round-title">Round 3 of 3</div>
+      <div class="question-group">
+        <label class="question-label">What was your first car?</label>
+        <input type="text" class="question-input" id="r3-vehicle" autocomplete="off">
+      </div>
+      <div class="question-group">
+        <label class="question-label">What media was in the wooden box?</label>
+        <input type="text" class="question-input" id="r3-media" autocomplete="off">
+      </div>
+      <div class="question-group">
+        <label class="question-label">What tree was in the back yard?</label>
+        <input type="text" class="question-input" id="r3-tree" autocomplete="off">
+      </div>
+      <div class="error-message" id="error-3"></div>
+      <div class="button-group">
+        <button id="btn3-back">← Back</button>
+        <button class="primary" id="btn3">Unlock Vault</button>
+      </div>
+    </div>
+
+    <div class="vault-content" id="vault">
+      <div class="vault-title">✓ Vault Unlocked</div>
+      <div class="vault-line">
+        One Ring to rule them all, one Ring to find them,<br>
+        One Ring to bring them all and in the darkness bind them,<br>
+        In the Land of Mordor where the Shadows lie.<br><br>
+        A#_xylo45&amp;<br>
+        Co##a_Birnbaum!<br>
+        kry##_xero45%
+      </div>
+    </div>
+
   </div>
+</div>
 
-  <!-- Second input field with guardians -->
-  <div class="input-container">
-    <div class="guardian" id="leftGuardian2"></div>
-    <input id="userWord" placeholder="Find the word" />
-    <div class="guardian" id="rightGuardian2"></div>
-  </div>
+<script>
+async function sha256(str) {
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(str));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,"0")).join("");
+}
 
-  <button onclick="check()">Submit</button>
+function norm(s) {
+  return s.toLowerCase().trim().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/\s+/g,"");
+}
 
-  <div id="result"></div>
+async function hashAnswers(arr) {
+  return await sha256(arr.map(norm).join(""));
+}
 
-  <div id="poem">
-    <hr />
-    <p>
-      One Ring to rule them all, one Ring to find them,<br />
-      One Ring to bring them all and in the darkness bind them,<br />
-      In the Land of Mordor where the Shadows lie.
-      A#_xylo45&
-      Co##a-PlopBaum!
-      kry##_xero45%
-    </p>
-  </div>
+function val(id) { return document.getElementById(id).value; }
 
-  <script>
-    // Arrays of ASCII guardians
-    const leftGuardians = [
-      `  (\\_/)  
- ( •_•)  
- / >🛡️`,
-      ` ／＞　 フ
-| 　_　_| 
-／\`ミ＿xノ 
-/　　　　 |
-\\　 ヽ　　 ﾉ
-│　　|　|　|`,
-      `   .-'     '-.
-  /  .-. .-.  \\
- |  /   Y   \\ |
- \\ \\_0_0_/ /
-  '-.\\___/.-'
-   _/     \\_
-  |  ⚔️     |`
-    ];
+function goTo(n) {
+  document.querySelectorAll(".round-section").forEach(s => s.classList.remove("active"));
+  document.getElementById("round-"+n).classList.add("active");
+  document.querySelectorAll(".progress-dot").forEach((dot, i) => {
+    dot.classList.remove("active","completed");
+    if (i+1 < n) dot.classList.add("completed");
+    if (i+1 === n) dot.classList.add("active");
+  });
+}
 
-    const rightGuardians = [
-      `   (ง •̀_•́)ง
-    /︻╦╤─
-   /     \\ 
-  |       |`,
-      `    ／＞　 フ
-    | 　_　_| 
-   ／\`ミ＿xノ 
-  /　　　　 |
-  |　 ヽ　ﾉ
-  |　　|　|`,
-      `   (•_•) 
-  <)   )╯
-  /   \\ ⚔️`
-    ];
+document.getElementById("btn1").addEventListener("click", async function() {
+  const input    = await hashAnswers([val("r1-street"), val("r1-phone")]);
+  const expected = await hashAnswers(["trossinger","475397"]);
+  if (input === expected) {
+    goTo(2);
+  } else {
+    const e = document.getElementById("error-1");
+    e.textContent = "Incorrect. Please check your answers.";
+    e.classList.add("show");
+  }
+});
 
-    // Function to pick a random guardian from an array
-    function getRandomGuardian(array) {
-      return array[Math.floor(Math.random() * array.length)];
-    }
+document.getElementById("btn2-back").addEventListener("click", () => goTo(1));
 
-    // Function to update all guardians
-    function updateGuardians() {
-      document.getElementById('leftGuardian1').textContent = getRandomGuardian(leftGuardians);
-      document.getElementById('rightGuardian1').textContent = getRandomGuardian(rightGuardians);
-      document.getElementById('leftGuardian2').textContent = getRandomGuardian(leftGuardians);
-      document.getElementById('rightGuardian2').textContent = getRandomGuardian(rightGuardians);
-    }
+document.getElementById("btn2").addEventListener("click", async function() {
+  const input    = await hashAnswers([val("r1-street"), val("r1-phone"), val("r2-friend"), val("r2-dog")]);
+  const expected = await hashAnswers(["trossinger","475397","yoyo","minka"]);
+  if (input === expected) {
+    goTo(3);
+  } else {
+    const e = document.getElementById("error-2");
+    e.textContent = "Incorrect. Please check your answers.";
+    e.classList.add("show");
+  }
+});
 
-    // Initialize guardians on page load
-    updateGuardians();
+document.getElementById("btn3-back").addEventListener("click", () => goTo(2));
 
-    // Update guardians every 3 seconds (3000 milliseconds)
-    setInterval(updateGuardians, 3000);
-
-    // Existing secret puzzle functions
-    function getSecretNumber() {
-      const x = String.fromCharCode(82).replace("R", "4"); // R = 82, becomes 4
-      const y = String.fromCharCode(55); // '7'
-      const z = "5";
-      const q = "3";
-      const w = "9";
-      const e = "7";
-      return parseInt(x + y + z + q + w + e, 10);
-    }
-
-    function getSecretWord() {
-      return atob("VHJvc3Npbmdlcg==");
-    }
-
-    function check() {
-      const numInput = document.getElementById("userCode").value.trim();
-      const wordInput = document.getElementById("userWord").value.trim();
-
-      const correctNumber = getSecretNumber();
-      const correctWord = getSecretWord();
-
-      if (parseInt(numInput, 10) === correctNumber && wordInput === correctWord) {
-        document.getElementById("result").textContent = "✅ Access Granted";
-        document.getElementById("result").style.color = "#2e7d32";
-        document.getElementById("poem").style.display = "block";
-      } else {
-        document.getElementById("result").textContent = "❌ Incorrect. Try again.";
-        document.getElementById("result").style.color = "#c62828";
-        document.getElementById("poem").style.display = "none";
-      }
-    }
-  </script>
-
-</body>
-</html>
+document.getElementById("btn3").addEventListener("click", async function() {
+  const input    = await hashAnswers([val("r1-street"), val("r1-phone"), val("r2-friend"), val("r2-dog"), val("r3-vehicle"), val("r3-media"), val("r3-tree")]);
+  const expected = await hashAnswers(["trossinger","475397","yoyo","minka","beetle","audiobooks","walnut"]);
+  if (input === expected) {
+    document.querySelectorAll(".round-section").forEach(s => s.classList.remove("active"));
+    document.getElementById("vault").classList.add("revealed");
+    document.querySelectorAll(".progress-dot").forEach(dot => { dot.classList.remove("active"); dot.classList.add("completed"); });
+  } else {
+    const e = document.getElementById("error-3");
+    e.textContent = "Incorrect. Please check your answers.";
+    e.classList.add("show");
+  }
+});
+</script>
