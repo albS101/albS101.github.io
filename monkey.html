@@ -114,14 +114,7 @@
 
   <div class="screen" id="vault">
     <div class="vault-title">&#10003; Vault Unlocked</div>
-    <div class="vault-line">
-      One Ring to rule them all, one Ring to find them,<br>
-      One Ring to bring them all and in the darkness bind them,<br>
-      In the Land of Mordor where the Shadows lie.<br><br>
-      A#_xylo45&amp;<br>
-      Co##a_Birnbaum!<br>
-      kry##_xero45%
-    </div>
+    <div class="vault-line" id="vault-content"></div>
   </div>
 
 </div>
@@ -143,6 +136,26 @@ const H={
   r2:"e20a8e1ea4aa746ce04cef5113a776b7b9595844c17f04503a65d8c6732cc6dc",
   r3:"5415186e14efe5af31c1643eff8bee66cffc3814e5a731d2310ae39aa2295369"
 };
+
+// Encrypted vault lines (shifted by key)
+const V={
+  l1:"Pof Sjoh up svmf uifn bmm, pof Sjoh up gjoe uifn,",
+  l2:"Azq Duzs fa nduzs ftqy mxx mzp uz ftq pmdwzqee nuzp ftqy,",
+  l3:"Kp vjg Ncpf qh Oqtfqt yjgtg vjg Ujcfqyu nkg.",
+  l4:"S#_pqdg23&",
+  l5:"Ht##f_Gnwsgfzr!",
+  l6:"nub##_ahur78%"
+};
+
+// Decrypt function: reverse-shift encrypted lines
+function decryptLine(line,n){
+  return line.split("").map(c=>{
+    if(c>='a'&&c<='z')return String.fromCharCode(((c.charCodeAt(0)-97-n+260)%26)+97);
+    if(c>='A'&&c<='Z')return String.fromCharCode(((c.charCodeAt(0)-65-n+260)%26)+65);
+    if(c>='0'&&c<='9')return String.fromCharCode(((c.charCodeAt(0)-48-n+100)%10)+48);
+    return c;
+  }).join("");
+}
 
 function goTo(id,n){
   document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));
@@ -188,6 +201,13 @@ document.getElementById("btn3").addEventListener("click",async function(){
   if(ih===H.r3){
     document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));
     document.getElementById("vault").classList.add("active");
+    const d1=decryptLine(V.l1,sh[0]);
+    const d2=decryptLine(V.l2,sh[1]);
+    const d3=decryptLine(V.l3,sh[2]);
+    const d4=decryptLine(V.l4,sh[3]);
+    const d5=decryptLine(V.l5,sh[4]);
+    const d6=decryptLine(V.l6,sh[5]);
+    document.getElementById("vault-content").innerHTML=d1+"<br>"+d2+"<br>"+d3+"<br><br>"+d4+"<br>"+d5+"<br>"+d6;
     document.querySelectorAll(".progress-dot").forEach(d=>{d.classList.remove("active");d.classList.add("completed");});
   }else{const e=document.getElementById("error-3");e.textContent="Incorrect. Please check your answers.";e.classList.add("show");}
 });
